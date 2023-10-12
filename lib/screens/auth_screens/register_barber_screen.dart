@@ -8,19 +8,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:nico/model/user_model.dart';
+import 'package:nico/model/barber_model.dart';
 import 'package:nico/screens/auth_screens/login_screen.dart';
 import 'package:nico/services/auth_service.dart';
 
-class RegisterScreen extends StatefulWidget {
-  const RegisterScreen({super.key});
+class RegisterBarberScreen extends StatefulWidget {
+  const RegisterBarberScreen({super.key});
 
   @override
-  State<RegisterScreen> createState() => _RegisterScreenState();
+  State<RegisterBarberScreen> createState() => _RegisterBarberScreenState();
 }
 
-class _RegisterScreenState extends State<RegisterScreen> {
+class _RegisterBarberScreenState extends State<RegisterBarberScreen> {
   final nameController = TextEditingController();
+  final cpfController = TextEditingController();
   final emailController = TextEditingController();
   final numberController = TextEditingController();
   final passowrdController = TextEditingController();
@@ -73,6 +74,26 @@ class _RegisterScreenState extends State<RegisterScreen> {
           return AlertDialog(
             title: const Text('Erro'),
             content: const Text('Nome muito pequeno'),
+            actions: [
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+                child: const Text('Voltar'),
+              )
+            ],
+          );
+        },
+      );
+    }
+
+    if (cpfController.text.length < 14) {
+      return showDialog(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            title: const Text('Erro'),
+            content: const Text('Cpf inválido'),
             actions: [
               ElevatedButton(
                 onPressed: () {
@@ -186,20 +207,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
         String urlImage = await ref.getDownloadURL();
 
         // ignore: use_build_context_synchronously
-        AuthService().registerUser(
-          UserModel(
+        AuthService().registerUsers(
+          BarberModel(
+            cpf: cpfController.text,
             email: emailController.text,
             name: nameController.text,
             number: numberController.text,
             imageProfile: urlImage,
             banned: false,
+            isClient: false,
           ),
+          null,
           context,
+          false,
         );
-
-        setState(() {
-          _isLoading = false;
-        });
       });
     } on FirebaseAuthException catch (erro) {
       // ignore: use_build_context_synchronously
@@ -246,7 +267,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
     final color = Theme.of(context).colorScheme;
-    final text = Theme.of(context).textTheme;
 
     return Scaffold(
       backgroundColor: color.primary,
@@ -332,12 +352,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             ],
                           ),
                         ),
-                        const SizedBox(height: 20),
+                        const SizedBox(height: 40),
                         TextFormField(
                           controller: nameController,
                           decoration: InputDecoration(
                             contentPadding: const EdgeInsets.all(20),
-                            hintText: 'Nome',
+                            hintText: 'Nome do Estabelecimento',
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(800),
                             ),
@@ -346,6 +366,30 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               child: CircleAvatar(
                                 child: Icon(
                                   Icons.person,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 15),
+                        TextFormField(
+                          controller: cpfController,
+                          inputFormatters: [
+                            FilteringTextInputFormatter.digitsOnly,
+                            CpfInputFormatter(),
+                          ],
+                          keyboardType: TextInputType.number,
+                          decoration: InputDecoration(
+                            contentPadding: const EdgeInsets.all(20),
+                            hintText: 'Cpf do Proprietário',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(800),
+                            ),
+                            suffixIcon: const Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 15),
+                              child: CircleAvatar(
+                                child: Icon(
+                                  Icons.email,
                                 ),
                               ),
                             ),

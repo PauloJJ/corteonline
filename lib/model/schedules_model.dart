@@ -1,20 +1,25 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class SchedulesModel {
-  String? idUser;
-  String? time;
-  bool? wasScheduled;
-  int? row;
+  late Timestamp dateOrder;
+  late Timestamp dateSchedules;
+  late String hour;
+  late String idEstablishment;
+  late String userId;
 
   SchedulesModel({
-    this.idUser,
-    this.time,
-    this.wasScheduled,
-    this.row,
+    required this.dateOrder,
+    required this.dateSchedules,
+    required this.hour,
+    required this.idEstablishment,
+    required this.userId,
   });
 
-  SchedulesModel.fromJson(Map<String, dynamic>? json) {
-    idUser = json!['idUser'];
-    time = json['time'];
-    wasScheduled = json['wasScheduled'];
-    row = json['row'];
+  SchedulesModel.fromJson(Map<String, dynamic> json) {
+    dateOrder = json['dateOrder'];
+    dateSchedules = json['dateSchedules'];
+    hour = json['hour'];
+    idEstablishment = json['idEstablishment'];
+    userId = json['userId'];
   }
 }

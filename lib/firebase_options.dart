@@ -44,40 +44,40 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyAejgIC8ezXKESpAVaW1WJlwi97FOmRvDs',
-    appId: '1:342650990262:web:b7eeeab2664272a1f60017',
-    messagingSenderId: '342650990262',
-    projectId: 'nico-b52de',
-    authDomain: 'nico-b52de.firebaseapp.com',
-    storageBucket: 'nico-b52de.appspot.com',
-    measurementId: 'G-7VDSG16Y6K',
+    apiKey: 'AIzaSyCgdDKKm0zGF1eXiInkBEqfHWdUJrT-gOM',
+    appId: '1:173798567063:web:97c51f72f18fe392f10dd2',
+    messagingSenderId: '173798567063',
+    projectId: 'corte-certo-84692',
+    authDomain: 'corte-certo-84692.firebaseapp.com',
+    storageBucket: 'corte-certo-84692.appspot.com',
+    measurementId: 'G-2LRDMBPDDR',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyDcb8khA_7UNwjngocspN9HOUnKWdlM60g',
-    appId: '1:342650990262:android:bb9d6c2f63f4bfebf60017',
-    messagingSenderId: '342650990262',
-    projectId: 'nico-b52de',
-    storageBucket: 'nico-b52de.appspot.com',
+    apiKey: 'AIzaSyCe35X9XoHCDvPmz0etxY6AIa-8FReKmps',
+    appId: '1:173798567063:android:e4ba509ae96690e1f10dd2',
+    messagingSenderId: '173798567063',
+    projectId: 'corte-certo-84692',
+    storageBucket: 'corte-certo-84692.appspot.com',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyC-_makx05_uel_90iwq5GrHklhYfyLbF8',
-    appId: '1:342650990262:ios:f5b47d0f106960a1f60017',
-    messagingSenderId: '342650990262',
-    projectId: 'nico-b52de',
-    storageBucket: 'nico-b52de.appspot.com',
-    iosClientId: '342650990262-51qri5l8iilf1av2fd6il480rf72j1n8.apps.googleusercontent.com',
-    iosBundleId: 'br.com.nico',
+    apiKey: 'AIzaSyDeY3PyDoEYeDIf7xSAA4uyccPYPdh7quk',
+    appId: '1:173798567063:ios:c8e9032d80d00965f10dd2',
+    messagingSenderId: '173798567063',
+    projectId: 'corte-certo-84692',
+    storageBucket: 'corte-certo-84692.appspot.com',
+    iosClientId: '173798567063-dokkieottoi1m3nd9chg03neq1issb0h.apps.googleusercontent.com',
+    iosBundleId: 'br.com.cortecerto',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
-    apiKey: 'AIzaSyC-_makx05_uel_90iwq5GrHklhYfyLbF8',
-    appId: '1:342650990262:ios:f5b47d0f106960a1f60017',
-    messagingSenderId: '342650990262',
-    projectId: 'nico-b52de',
-    storageBucket: 'nico-b52de.appspot.com',
-    iosClientId: '342650990262-51qri5l8iilf1av2fd6il480rf72j1n8.apps.googleusercontent.com',
-    iosBundleId: 'br.com.nico',
+    apiKey: 'AIzaSyDeY3PyDoEYeDIf7xSAA4uyccPYPdh7quk',
+    appId: '1:173798567063:ios:c8e9032d80d00965f10dd2',
+    messagingSenderId: '173798567063',
+    projectId: 'corte-certo-84692',
+    storageBucket: 'corte-certo-84692.appspot.com',
+    iosClientId: '173798567063-dokkieottoi1m3nd9chg03neq1issb0h.apps.googleusercontent.com',
+    iosBundleId: 'br.com.cortecerto',
   );
 }

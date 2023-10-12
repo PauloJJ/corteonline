@@ -1,4 +1,4 @@
-package br.com.nico
+package br.com.cortecerto
 
 import io.flutter.embedding.android.FlutterActivity
 

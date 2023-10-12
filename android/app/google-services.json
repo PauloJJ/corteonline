@@ -1,77 +1,34 @@
 {
   "project_info": {
-    "project_number": "342650990262",
-    "project_id": "nico-b52de",
-    "storage_bucket": "nico-b52de.appspot.com"
+    "project_number": "173798567063",
+    "project_id": "corte-certo-84692",
+    "storage_bucket": "corte-certo-84692.appspot.com"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:342650990262:android:bb9d6c2f63f4bfebf60017",
+        "mobilesdk_app_id": "1:173798567063:android:e4ba509ae96690e1f10dd2",
         "android_client_info": {
-          "package_name": "br.com.nico"
+          "package_name": "br.com.cortecerto"
         }
       },
       "oauth_client": [
         {
-          "client_id": "342650990262-h07uc42v2gusl1mlql1u2fvfv0m60kip.apps.googleusercontent.com",
+          "client_id": "173798567063-hfnnsl88lcf8pc3eqon182fkdnvijmek.apps.googleusercontent.com",
           "client_type": 3
         }
       ],
       "api_key": [
         {
-          "current_key": "AIzaSyDcb8khA_7UNwjngocspN9HOUnKWdlM60g"
+          "current_key": "AIzaSyCe35X9XoHCDvPmz0etxY6AIa-8FReKmps"
         }
       ],
       "services": {
         "appinvite_service": {
           "other_platform_oauth_client": [
             {
-              "client_id": "342650990262-h07uc42v2gusl1mlql1u2fvfv0m60kip.apps.googleusercontent.com",
+              "client_id": "173798567063-hfnnsl88lcf8pc3eqon182fkdnvijmek.apps.googleusercontent.com",
               "client_type": 3
-            },
-            {
-              "client_id": "342650990262-3pp8uo5cf83v0uq5p4urs1g0bnujougv.apps.googleusercontent.com",
-              "client_type": 2,
-              "ios_info": {
-                "bundle_id": "com.example.nico"
-              }
-            }
-          ]
-        }
-      }
-    },
-    {
-      "client_info": {
-        "mobilesdk_app_id": "1:342650990262:android:4d8d6d2e9e24e1fff60017",
-        "android_client_info": {
-          "package_name": "com.example.nico"
-        }
-      },
-      "oauth_client": [
-        {
-          "client_id": "342650990262-h07uc42v2gusl1mlql1u2fvfv0m60kip.apps.googleusercontent.com",
-          "client_type": 3
-        }
-      ],
-      "api_key": [
-        {
-          "current_key": "AIzaSyDcb8khA_7UNwjngocspN9HOUnKWdlM60g"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": [
-            {
-              "client_id": "342650990262-h07uc42v2gusl1mlql1u2fvfv0m60kip.apps.googleusercontent.com",
-              "client_type": 3
-            },
-            {
-              "client_id": "342650990262-3pp8uo5cf83v0uq5p4urs1g0bnujougv.apps.googleusercontent.com",
-              "client_type": 2,
-              "ios_info": {
-                "bundle_id": "com.example.nico"
-              }
             }
           ]
         }

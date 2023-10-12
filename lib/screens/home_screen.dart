@@ -1,740 +1,1026 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:intl/intl.dart';
+import 'package:nico/components/appdrawer_component.dart';
 import 'package:nico/components/auth_or_app_component.dart';
-import 'package:nico/model/list_date_time_model.dart';
+import 'package:nico/model/barber_model.dart';
+import 'package:nico/model/days_and_hours_model.dart';
 import 'package:nico/model/schedules_model.dart';
 import 'package:nico/model/user_model.dart';
+import 'package:nico/services/admob_service.dart';
+import 'package:provider/provider.dart';
 import 'package:syncfusion_flutter_datepicker/datepicker.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:whatsapp_unilink/whatsapp_unilink.dart';
 
 class HomeScreens extends StatefulWidget {
-  UserModel userModel;
+  final BarberModel? barberModel;
 
-  HomeScreens({required this.userModel});
+  const HomeScreens({super.key, required this.barberModel});
 
   @override
   State<HomeScreens> createState() => _HomeScreensState();
 }
 
 class _HomeScreensState extends State<HomeScreens> {
+  ScrollController scrollController = ScrollController();
+
+  final dateRangePickerController = DateRangePickerController();
+
   final userId = FirebaseAuth.instance.currentUser!.uid;
 
-  DateTime dateTime = DateTime.now();
-  String dateTimeNowString = '';
+  int weekDay = DateTime.now().weekday;
 
-  List<Map<String, dynamic>> listTimes = [];
-  List schedulesAuto = [];
+  List<int> listDaysAvailable = [];
 
-  List<bool> isDeleteLoading = [];
+  List<Map<String, dynamic>> listSchedules = [];
 
-  getTimes() async {
-    setState(() {
-      listTimes.clear();
-      isDeleteLoading.clear();
-    });
+  getSchedules({required String date}) async {
+    listSchedules.clear();
 
-    DateTime dateNow = DateTime.now();
+    final docUser =
+        await FirebaseFirestore.instance.collection('users').doc(userId).get();
 
-    DateTime removeHourDate =
-        DateTime(dateNow.year, dateNow.month, dateNow.day);
-
-    print('remove hour $removeHourDate');
-
-    final times = await FirebaseFirestore.instance
-        .collection('times')
-        .orderBy('row')
+    final docDayAndHours = await FirebaseFirestore.instance
+        .collection('daysAndHours')
+        .where('idEstablishment',
+            isEqualTo: docUser['isClient'] == true
+                ? docUser['establishmentId']
+                : userId)
         .get();
 
-    final getScheduling =
-        await FirebaseFirestore.instance.collection('scheduling').get();
-
-    for (var e in times.docs) {
-      listTimes.add({'doc': e, 'isAvailable': true, 'docScheduling': null});
+    for (var e in docDayAndHours.docs) {
+      for (var h in e[whatWeekDay(weekDay)]) {
+        listSchedules.add({
+          'hour': h,
+          'isAvailable': true,
+          'idUser': '',
+          'idSchedules': '',
+        });
+      }
     }
 
-    for (var e in getScheduling.docs) {
-      DateTime dateDoc = DateTime.parse(e['date']);
+    final doc = await FirebaseFirestore.instance
+        .collection('schedules')
+        .where('idEstablishment',
+            isEqualTo: docUser['isClient'] == true
+                ? docUser['establishmentId']
+                : userId)
+        .get();
 
-      if (dateDoc.compareTo(removeHourDate) < 0) {
-        await FirebaseFirestore.instance
-            .collection('scheduling')
-            .doc(e.id)
-            .delete();
-      } else if (dateTimeNowString == e['date']) {
-        listTimes.forEach((element) {
-          if (element['doc']['time'] == e['time']) {
-            element.update('isAvailable', (value) => false);
-            element.update('docScheduling', (value) => e);
+    for (var e in doc.docs) {
+      SchedulesModel schedulesModel = SchedulesModel.fromJson(e.data());
+
+      String dateSchedule = DateFormat('dd/MM/yyyy')
+          .format(schedulesModel.dateSchedules.toDate());
+
+      if (dateSchedule == date) {
+        for (var s in listSchedules) {
+          if (s['hour'] == schedulesModel.hour) {
+            s['isAvailable'] = false;
+            s['userId'] = e['userId'];
+            s['idSchedules'] = e.id;
           }
-        });
-      } else {
-        print('não');
-      }
+        }
+      } else {}
     }
 
     setState(() {});
   }
 
-  toCreate() async {
-    for (var e in ListDateTimeModel().times) {
-      await FirebaseFirestore.instance.collection('times').doc(e['time']).set(
-          {'time': e['time'], 'row': e['row'], 'schedules': e['schedules']});
+  String whatWeekDay(int weekDay) {
+    if (weekDay == 1) {
+      return 'seg';
+    } else if (weekDay == 2) {
+      return 'ter';
+    } else if (weekDay == 3) {
+      return 'qua';
+    } else if (weekDay == 4) {
+      return 'qui';
+    } else if (weekDay == 5) {
+      return 'sex';
+    } else if (weekDay == 6) {
+      return 'sab';
+    } else {
+      return 'dom';
     }
   }
 
-  selectTime(String time, String idTime) async {
-    return showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Agendar corte para ${time}H'),
-        content: const Text(
-            'Você tem certeza de que gostaria de agendar seu corte para este horário? Por favor, lembre-se de que se você não comparecer no horário agendado, poderá perder sua reserva.'),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-            },
-            child: const Text(
-              'Voltar',
-              style: TextStyle(
-                color: Colors.red,
-              ),
-            ),
-          ),
-          TextButton(
-            onPressed: () async {
-              // convertando data
+  addAvailableDays(DaysAndHoursModel daysAndHoursModel) async {
+    // print(daysAndHoursModel.dom);
 
-              var formatter = DateFormat('yyyy-MM-dd');
-              String formattedDate = formatter.format(dateTime);
-              print(formattedDate);
-
-              await FirebaseFirestore.instance
-                  .collection('scheduling')
-                  .doc()
-                  .set({
-                'idUser': userId,
-                'date': formattedDate,
-                'time': time
-              }).then((value) {
-                Navigator.of(context).pop();
-
-                getTimes();
-
-                return ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Agendamento marcado para ${time}H'),
-                  ),
-                );
-              });
-            },
-            child: const Text(
-              'Sim',
-              style: TextStyle(
-                color: Colors.green,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
+    if (daysAndHoursModel.seg.isEmpty && !listDaysAvailable.contains(1)) {
+      listDaysAvailable.add(1);
+    }
+    if (daysAndHoursModel.ter.isEmpty && !listDaysAvailable.contains(2)) {
+      listDaysAvailable.add(2);
+    }
+    if (daysAndHoursModel.qua.isEmpty && !listDaysAvailable.contains(3)) {
+      listDaysAvailable.add(3);
+    }
+    if (daysAndHoursModel.qui.isEmpty && !listDaysAvailable.contains(4)) {
+      listDaysAvailable.add(4);
+    }
+    if (daysAndHoursModel.sex.isEmpty && !listDaysAvailable.contains(5)) {
+      listDaysAvailable.add(5);
+    }
+    if (daysAndHoursModel.sab.isEmpty && !listDaysAvailable.contains(6)) {
+      listDaysAvailable.add(6);
+    }
+    if (daysAndHoursModel.dom.isEmpty && !listDaysAvailable.contains(7)) {
+      listDaysAvailable.add(7);
+    }
   }
 
-  Widget sfDate() {
-    return SfDateRangePicker(
-      headerStyle: DateRangePickerHeaderStyle(
-        textStyle: GoogleFonts.montserrat(
-            fontSize: 17, color: Colors.white, fontWeight: FontWeight.bold),
-      ),
-      selectionColor: Colors.white,
-      selectionTextStyle: GoogleFonts.montserrat(
-        fontSize: 17,
-        color: Colors.black,
-      ),
-      minDate: DateTime.now(),
-      initialDisplayDate: DateTime.now(),
-      initialSelectedDate: DateTime.now(),
-      monthCellStyle: DateRangePickerMonthCellStyle(
-        textStyle: GoogleFonts.montserrat(
-          fontSize: 17,
-          color: Colors.white,
-        ),
-        disabledDatesTextStyle: GoogleFonts.montserrat(
-          fontSize: 17,
-          color: Colors.grey.shade700,
-        ),
-        leadingDatesTextStyle: GoogleFonts.montserrat(
-          fontSize: 17,
-          color: Colors.white,
-        ),
-        blackoutDateTextStyle: GoogleFonts.montserrat(
-          fontSize: 17,
-          color: Colors.white,
-        ),
-        specialDatesTextStyle: GoogleFonts.montserrat(
-          fontSize: 17,
-          color: Colors.white,
-        ),
-        weekendTextStyle: GoogleFonts.montserrat(
-          fontSize: 17,
-          color: Colors.white,
-        ),
-        trailingDatesTextStyle: GoogleFonts.montserrat(
-          fontSize: 17,
-          color: Colors.white,
-        ),
-        todayTextStyle: GoogleFonts.montserrat(
-          fontSize: 17,
-          color: Colors.white,
-        ),
-        weekendDatesDecoration: BoxDecoration(
-          color: const Color.fromARGB(61, 244, 67, 54),
-          border: Border.all(color: Colors.red, width: 1),
-          shape: BoxShape.circle,
-        ),
-      ),
-      monthViewSettings: DateRangePickerMonthViewSettings(
-        weekendDays: [7],
-        viewHeaderStyle: DateRangePickerViewHeaderStyle(
-          textStyle: GoogleFonts.montserrat(
-            fontSize: 14,
-            color: Colors.white,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-      ),
-      view: DateRangePickerView.month,
-      onSelectionChanged: (dateRangePickerSelectionChangedArgs) {
-        setState(() {
-          dateTime = dateRangePickerSelectionChangedArgs.value!;
-          dateTimeNowString = DateFormat('yyyy-MM-dd')
-              .format(dateRangePickerSelectionChangedArgs.value!);
-        });
+  Widget sfDate({required String idEstablishment, required bool isClient}) {
+    return StreamBuilder(
+      stream: FirebaseFirestore.instance
+          .collection('daysAndHours')
+          .where('idEstablishment', isEqualTo: idEstablishment)
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.hasData) {
+          DaysAndHoursModel daysAndHoursModel =
+              DaysAndHoursModel.fromJson(snapshot.data!.docs.first.data());
 
-        getTimes();
+          addAvailableDays(daysAndHoursModel);
 
-        print(dateTime);
+          return SfDateRangePicker(
+            headerStyle: DateRangePickerHeaderStyle(
+              textStyle: GoogleFonts.montserrat(
+                fontSize: 17,
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            selectionColor: Colors.white,
+            selectionTextStyle: GoogleFonts.montserrat(
+              fontSize: 17,
+              color: Colors.black,
+            ),
+            minDate: DateTime.now(),
+            initialDisplayDate: DateTime.now(),
+            initialSelectedDate: DateTime.now(),
+            monthCellStyle: DateRangePickerMonthCellStyle(
+              textStyle: GoogleFonts.montserrat(
+                fontSize: 17,
+                color: Colors.white,
+              ),
+              disabledDatesTextStyle: GoogleFonts.montserrat(
+                fontSize: 17,
+                color: Colors.grey,
+              ),
+              leadingDatesTextStyle: GoogleFonts.montserrat(
+                fontSize: 17,
+                color: Colors.white,
+              ),
+              blackoutDateTextStyle: GoogleFonts.montserrat(
+                fontSize: 17,
+                color: Colors.white,
+              ),
+              specialDatesTextStyle: GoogleFonts.montserrat(
+                fontSize: 17,
+                color: Colors.white,
+              ),
+              weekendTextStyle: GoogleFonts.montserrat(
+                fontSize: 17,
+                color: Colors.white,
+              ),
+              trailingDatesTextStyle: GoogleFonts.montserrat(
+                fontSize: 17,
+                color: Colors.white,
+              ),
+              todayTextStyle: GoogleFonts.montserrat(
+                fontSize: 17,
+                color: Colors.white,
+              ),
+              weekendDatesDecoration: BoxDecoration(
+                color: const Color.fromARGB(132, 255, 29, 13),
+                border: Border.all(color: Colors.red, width: 1),
+                shape: BoxShape.circle,
+              ),
+            ),
+            monthViewSettings: DateRangePickerMonthViewSettings(
+              weekendDays: listDaysAvailable,
+              viewHeaderStyle: DateRangePickerViewHeaderStyle(
+                textStyle: GoogleFonts.montserrat(
+                  fontSize: 14,
+                  color: Colors.white,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+            view: DateRangePickerView.month,
+            onSelectionChanged: (dateRangePickerSelectionChangedArgs) {
+              if (widget.barberModel == null) {
+                isToDisplayInterstitial();
+              }
+
+              getSchedules(
+                  date: DateFormat('dd/MM/yyyy')
+                      .format(dateRangePickerController.selectedDate!));
+
+              setState(() {
+                weekDay = dateRangePickerController.selectedDate!.weekday;
+              });
+            },
+            controller: dateRangePickerController,
+          );
+        } else {
+          return Container();
+        }
       },
     );
   }
 
-  deleteScheduling({
-    required String docId,
-    required bool isDeleteLoading,
-    required String date,
+  setScheduleTime({
     required String hour,
+    required DateTime dateSchedules,
+    required String idEstablishment,
   }) async {
-    setState(() {
-      isDeleteLoading = true;
+    String dateAndTime =
+        '${DateFormat('dd/MM/yyyy').format(dateSchedules)} $hour';
+
+    AdMobService().interstitialAdId();
+
+    return showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Tem certeza ?'),
+          content: Text(
+              'Que gostaria de fazer esse agendamento: ${DateFormat('dd/MM/yyyy').format(dateSchedules)} - ${hour}H'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text(
+                'Cancelar',
+                style: GoogleFonts.montserrat(
+                  fontSize: 17,
+                  color: Colors.red,
+                ),
+              ),
+            ),
+            TextButton(
+              onPressed: () async {
+                final schedules = await FirebaseFirestore.instance
+                    .collection('schedules')
+                    .where('idEstablishment', isEqualTo: idEstablishment)
+                    .get();
+
+                for (var e in schedules.docs) {
+                  String verification =
+                      '${DateFormat('dd/MM/yyyy').format(e['dateSchedules'].toDate())} ${e['hour']}';
+
+                  if (verification == dateAndTime) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        backgroundColor: Colors.red,
+                        content: Text(
+                          'Desculpe, ocorreu um problema. Por favor, tente novamente.',
+                          style: TextStyle(color: Colors.white),
+                        ),
+                      ),
+                    );
+
+                    await getSchedules(
+                      date: DateFormat('dd/MM/yyyy')
+                          .format(dateRangePickerController.selectedDate!),
+                    );
+
+                    return Navigator.of(context).pop();
+                  }
+                }
+
+                await FirebaseFirestore.instance
+                    .collection('schedules')
+                    .doc()
+                    .set({
+                  'dateOrder': DateTime.now(),
+                  'dateSchedules': dateSchedules,
+                  'hour': hour,
+                  'userId': userId,
+                  'idEstablishment': idEstablishment,
+                }).then((value) async {
+                  await getSchedules(
+                    date: DateFormat('dd/MM/yyyy')
+                        .format(dateRangePickerController.selectedDate!),
+                  );
+
+                  Provider.of<AdMobService>(context, listen: false)
+                      .updateMadeAnAppointment();
+
+                  Navigator.of(context).pushAndRemoveUntil(
+                      MaterialPageRoute(
+                        builder: (context) => AuthOrAppComponent(index: 1),
+                      ),
+                      (route) => false);
+                });
+              },
+              child: Text(
+                'Confirmar',
+                style: GoogleFonts.montserrat(
+                  fontSize: 17,
+                  color: Colors.green.shade800,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  dataUserSchedule(
+      {required UserModel userModel,
+      required String hour,
+      required String docId}) async {
+    return showAdaptiveDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Informações do Cliente'),
+          content: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                children: [
+                  const Icon(
+                    Icons.document_scanner,
+                    color: Color(0xFF156778),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(child: SelectableText(userModel.name)),
+                ],
+              ),
+              const SizedBox(height: 15),
+              Row(
+                children: [
+                  const Icon(
+                    Icons.person,
+                    color: Color(0xFF156778),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(child: SelectableText(userModel.cpf)),
+                ],
+              ),
+              const SizedBox(height: 15),
+              Row(
+                children: [
+                  const Icon(
+                    Icons.email,
+                    color: Color(0xFF156778),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: SelectableText(
+                      userModel.email,
+                      style: TextStyle(color: Colors.blue.shade600),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 15),
+              Row(
+                children: [
+                  const Icon(
+                    Icons.phone,
+                    color: Color(0xFF156778),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                      child: SelectableText(
+                    userModel.number,
+                    style: TextStyle(color: Colors.blue.shade600),
+                  )),
+                ],
+              ),
+              const SizedBox(height: 15),
+              TextButton(
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.all(0),
+                ),
+                onPressed: () async {
+                  final url = WhatsAppUnilink(
+                      phoneNumber: '+55 ${userModel.number}',
+                      text:
+                          'Olá, ${widget.barberModel!.name} aqui. Estou entrando em contato para confirmar o seu agendamento para o dia ${DateFormat('dd/MM/yyyy').format(dateRangePickerController.selectedDate!)} $hour. Está tudo certo?');
+
+                  launchUrl(
+                    Uri.parse(url.toString()),
+                  );
+                },
+                child: Text(
+                  'Enviar Mensagem \nno Whatsapp',
+                  style: GoogleFonts.montserrat(
+                      fontSize: 15, fontWeight: FontWeight.w600),
+                ),
+              )
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () async {
+                await FirebaseFirestore.instance
+                    .collection('schedules')
+                    .doc(docId)
+                    .delete()
+                    .then((value) {
+                  getSchedules(
+                      date: DateFormat('dd/MM/yyyy')
+                          .format(dateRangePickerController.selectedDate!));
+
+                  Navigator.of(context).pop();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Agendamento excluido'),
+                    ),
+                  );
+                });
+              },
+              child: const Text(
+                'Excluir Agendamento',
+                style: TextStyle(color: Colors.red),
+              ),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Text('Voltar'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // Funções de ADS
+
+  isToDisplayInterstitial() {
+    int isToDisplay =
+        Provider.of<AdMobService>(context, listen: false).getIsToDisplayHome();
+
+    int showAdsScreenSchedule =
+        Provider.of<AdMobService>(context, listen: false)
+            .getShowAdsScreenHome();
+
+    if (isToDisplay == showAdsScreenSchedule) {
+      AdMobService().interstitialAdId();
+
+      Provider.of<AdMobService>(context, listen: false)
+          .updateShowAdsScreenHome();
+    } else {
+      Provider.of<AdMobService>(context, listen: false).updateisToDisplayHome();
+    }
+  }
+
+  BannerAd? banner;
+
+  createdBannerAd() async {
+    // Android
+    String? adUnitId;
+
+    await AdMobService.bannerAdUnitId.then((value) {
+      setState(() {
+        adUnitId = value;
+      });
     });
 
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Tem certeza ?'),
-        content: Text('Que gostaria de deletar o agendamento $date ${hour}H'),
-        actions: [
-          TextButton(
-            onPressed: () async {
-              await FirebaseFirestore.instance
-                  .collection('scheduling')
-                  .doc(docId)
-                  .delete()
-                  .then((value) {
-                getTimes();
-                Navigator.of(context).pop();
-              });
-            },
-            child: const Text('Sim'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-            },
-            child: const Text('Não'),
-          ),
-        ],
+    banner = BannerAd(
+      size: AdSize.fullBanner,
+      adUnitId: adUnitId!,
+      listener: BannerAdListener(
+        onAdLoaded: (ad) => debugPrint('ad Loaded'),
+        onAdFailedToLoad: (ad, error) {
+          ad.dispose();
+          debugPrint('Ad failed to load: $error');
+        },
       ),
-    );
+      request: const AdRequest(),
+    )..load();
   }
 
   @override
   void initState() {
     super.initState();
-    getTimes();
-
-    setState(() {
-      dateTimeNowString = DateFormat('yyyy-MM-dd').format(dateTime);
-    });
-
-    print('Data de hoje $dateTimeNowString');
+    getSchedules(date: DateFormat('dd/MM/yyyy').format(DateTime.timestamp()));
+    createdBannerAd();
   }
 
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
     final color = Theme.of(context).colorScheme;
-    final text = Theme.of(context).textTheme;
 
     return Scaffold(
+      drawer: const AppdrawerComponent(),
       appBar: AppBar(
-        backgroundColor: color.primary,
-        title: Text(
-          widget.userModel.name,
-          style: GoogleFonts.montserrat(
-            fontSize: 20,
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
+        title: const Text(
+          'Home',
+          style: TextStyle(
+            color: Colors.black,
           ),
         ),
-        leading: Padding(
-          padding: const EdgeInsets.only(left: 5),
-          child: CircleAvatar(
-            backgroundImage: NetworkImage(
-              widget.userModel.imageProfile,
-            ),
-          ),
-        ),
-        actions: [
-          IconButton(
-            onPressed: () async {
-              await FirebaseAuth.instance.signOut().then(
-                    (value) => Navigator.of(context).pushAndRemoveUntil(
-                      MaterialPageRoute(
-                        builder: (context) => const AuthOrAppComponent(),
-                      ),
-                      (route) => false,
-                    ),
-                  );
-            },
-            icon: const Icon(
-              Icons.exit_to_app,
-              color: Colors.white,
-              size: 35,
-            ),
-          ),
-        ],
       ),
-      body: SizedBox(
-        height: size.height,
-        width: size.width,
-        child: SingleChildScrollView(
-          child: Column(
-            children: [
-              Container(
-                decoration: BoxDecoration(
-                  color: color.primary,
-                  image: const DecorationImage(
-                    image: AssetImage('assets/images/barber.jpeg'),
-                    fit: BoxFit.cover,
-                    opacity: 0.2,
-                  ),
-                  borderRadius: const BorderRadius.only(
-                    bottomLeft: Radius.circular(50),
-                  ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.all(15),
-                      child: Text(
-                        'Faça seu agendamento',
-                        style: GoogleFonts.montserrat(
-                          fontSize: 30,
-                          fontWeight: FontWeight.w900,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                    
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 10),
-                      child: Container(
-                        child: sfDate(),
-                      ),
-                    ),
+      body: RefreshIndicator.adaptive(
+        onRefresh: () async {
+          getSchedules(
+            date: DateFormat('dd/MM/yyyy')
+                .format(dateRangePickerController.selectedDate!),
+          );
 
-
-               
-
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: Row(
-                        children: const [
-                          CircleAvatar(
-                            backgroundColor: Colors.white,
-                            radius: 8,
-                          ),
-                          SizedBox(width: 8),
-                          Text(
-                            'Disponível',
-                            style: TextStyle(
-                              color: Colors.white,
+          setState(() {
+            scrollController.animateTo(size.height * 0.5,
+                duration: const Duration(seconds: 1), curve: Curves.linear);
+          });
+        },
+        child: SizedBox(
+          height: size.height,
+          width: size.width,
+          child: SingleChildScrollView(
+            controller: scrollController,
+            child: StreamBuilder(
+              stream: FirebaseFirestore.instance
+                  .collection('users')
+                  .doc(userId)
+                  .snapshots(),
+              builder: (context, snapshot) {
+                if (snapshot.hasData) {
+                  if (snapshot.data!['isClient'] == true) {
+                    UserModel userModel =
+                        UserModel.fromJson(snapshot.data!.data()!);
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // ADS - Banner
+                        if (banner != null)
+                          Container(
+                            width: 468,
+                            height: 60,
+                            child: Center(
+                              child: banner == null
+                                  ? Container()
+                                  : AdWidget(ad: banner!),
                             ),
                           ),
-                          SizedBox(width: 20),
-                          CircleAvatar(
-                            backgroundColor: Colors.red,
-                            radius: 8,
-                          ),
-                          SizedBox(width: 8),
-                          Text(
-                            'Indisponíveis',
-                            style: TextStyle(
-                              color: Colors.white,
+
+                        // Selecionador de data
+                        Container(
+                          decoration: BoxDecoration(
+                            color: color.primary,
+                            image: const DecorationImage(
+                              image: AssetImage('assets/images/barber.jpeg'),
+                              fit: BoxFit.cover,
+                              opacity: 0.2,
+                            ),
+                            borderRadius: const BorderRadius.only(
+                              bottomLeft: Radius.circular(50),
                             ),
                           ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 30),
-                    StreamBuilder(
-                      stream: FirebaseFirestore.instance
-                          .collection('scheduling')
-                          .where('idUser', isEqualTo: userId)
-                          .orderBy('date')
-                          .orderBy('time')
-                          .snapshots(),
-                      builder: (context, snapshot) {
-                        if (snapshot.hasData) {
-                          return snapshot.data!.docs.isEmpty
-                              ? Container()
-                              : Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // select Date
+                              Padding(
+                                padding: const EdgeInsets.all(15),
+                                child: Container(
+                                  child: sfDate(
+                                    idEstablishment: userModel.establishmentId!,
+                                    isClient: true,
+                                  ),
+                                ),
+                              ),
+
+                              const Padding(
+                                padding: EdgeInsets.symmetric(horizontal: 20),
+                                child: Row(
                                   children: [
-                                    const Divider(
-                                        color: Colors.white, height: 20),
-                                    Padding(
-                                      padding: const EdgeInsets.all(15),
-                                      child: Text(
-                                        'Seus Agendamentos',
-                                        style: GoogleFonts.montserrat(
-                                          fontSize: 25,
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.bold,
-                                        ),
+                                    CircleAvatar(
+                                      backgroundColor: Colors.white,
+                                      radius: 8,
+                                    ),
+                                    SizedBox(width: 8),
+                                    Text(
+                                      'Disponível',
+                                      style: TextStyle(
+                                        color: Colors.white,
                                       ),
                                     ),
-                                    ListView.builder(
-                                      itemCount: snapshot.data!.docs.length,
-                                      shrinkWrap: true,
+                                    SizedBox(width: 20),
+                                    CircleAvatar(
+                                      backgroundColor: Colors.red,
+                                      radius: 8,
+                                    ),
+                                    SizedBox(width: 8),
+                                    Text(
+                                      'Indisponíveis',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+
+                              const SizedBox(height: 30),
+                            ],
+                          ),
+                        ),
+
+                        // Get Hours available
+                        Padding(
+                          padding: const EdgeInsets.all(20),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const SizedBox(height: 20),
+                              Text(
+                                'Selecione o horário para seu agendamento',
+                                style: GoogleFonts.montserrat(
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.bold,
+                                  color: color.primary,
+                                ),
+                              ),
+                              const SizedBox(height: 15),
+                              listSchedules.isEmpty == true
+                                  ? SizedBox(
+                                      width: size.width,
+                                      child: Center(
+                                          child: Column(
+                                        children: [
+                                          const SizedBox(height: 25),
+                                          Icon(
+                                            Icons.timer_off_outlined,
+                                            color: Colors.grey.shade200,
+                                            size: 150,
+                                          ),
+                                          Text(
+                                            'Horários indisponíveis',
+                                            style: TextStyle(
+                                              color: Colors.grey.shade400,
+                                            ),
+                                          )
+                                        ],
+                                      )),
+                                    )
+                                  : GridView.builder(
+                                      gridDelegate:
+                                          const SliverGridDelegateWithMaxCrossAxisExtent(
+                                        maxCrossAxisExtent: 80,
+                                        crossAxisSpacing: 15,
+                                        mainAxisSpacing: 15,
+                                        mainAxisExtent: 35,
+                                      ),
                                       physics:
                                           const NeverScrollableScrollPhysics(),
+                                      shrinkWrap: true,
+                                      itemCount: listSchedules.length,
                                       itemBuilder: (context, index) {
-                                        String date =
-                                            '${snapshot.data!.docs[index]['date'].toString().substring(8)}/${snapshot.data!.docs[index]['date'].toString().substring(5, 7)}/${snapshot.data!.docs[index]['date'].toString().substring(0, 4)}';
+                                        String hours =
+                                            listSchedules[index]['hour'];
 
-                                        isDeleteLoading.add(false);
+                                        bool isAvailable =
+                                            listSchedules[index]['isAvailable'];
 
-                                        String docId =
-                                            snapshot.data!.docs[index].id;
+                                        return InkWell(
+                                          borderRadius:
+                                              BorderRadius.circular(800),
+                                          onTap: isAvailable == false
+                                              ? null
+                                              : () {
+                                                  int hour = int.parse(
+                                                    hours.length == 4
+                                                        ? hours[0]
+                                                        : hours
+                                                            .replaceAll(
+                                                                ':', '.')
+                                                            .replaceRange(
+                                                                2, null, ''),
+                                                  );
 
-                                        return Padding(
-                                          padding: const EdgeInsets.symmetric(
-                                              horizontal: 15, vertical: 8),
-                                          child: Card(
-                                            color: Colors.black26,
-                                            child: Padding(
-                                              padding: const EdgeInsets.all(15),
-                                              child: Column(
-                                                crossAxisAlignment:
-                                                    CrossAxisAlignment.start,
-                                                children: [
-                                                  Row(
-                                                    children: [
-                                                      const Icon(
-                                                        Icons.date_range,
-                                                        color: Colors.white,
-                                                        size: 30,
+                                                  int minutes = int.parse(
+                                                    hours.length == 4
+                                                        ? hours
+                                                            .replaceAll(':', '')
+                                                            .substring(1)
+                                                        : hours
+                                                            .replaceAll(':', '')
+                                                            .substring(2),
+                                                  );
+
+                                                  setScheduleTime(
+                                                    hour: hours,
+                                                    dateSchedules: DateTime(
+                                                      dateRangePickerController
+                                                          .selectedDate!.year,
+                                                      dateRangePickerController
+                                                          .selectedDate!.month,
+                                                      dateRangePickerController
+                                                          .selectedDate!.day,
+                                                    ).add(
+                                                      Duration(
+                                                        minutes: minutes,
+                                                        hours: hour,
                                                       ),
-                                                      const SizedBox(width: 8),
-                                                      Text(
-                                                        date,
-                                                        style: GoogleFonts
-                                                            .montserrat(
-                                                          fontSize: 18,
-                                                          color: Colors.white,
-                                                          fontWeight:
-                                                              FontWeight.bold,
-                                                        ),
-                                                      ),
-                                                      const Spacer(),
-                                                      isDeleteLoading[index] ==
-                                                              true
-                                                          ? const Center(
-                                                              child:
-                                                                  CircularProgressIndicator(
-                                                                color: Colors
-                                                                    .white,
-                                                              ),
-                                                            )
-                                                          : IconButton(
-                                                              onPressed:
-                                                                  () async {
-                                                                deleteScheduling(
-                                                                  docId: docId,
-                                                                  isDeleteLoading:
-                                                                      isDeleteLoading[
-                                                                          index],
-                                                                  date: date,
-                                                                  hour: snapshot
-                                                                          .data!
-                                                                          .docs[
-                                                                      index]['time'],
-                                                                );
-                                                              },
-                                                              icon: const Icon(
-                                                                Icons
-                                                                    .delete_forever_outlined,
-                                                                size: 28,
-                                                                color:
-                                                                    Colors.red,
-                                                              ),
-                                                            ),
-                                                    ],
-                                                  ),
-                                                  const SizedBox(height: 10),
-                                                  Row(
-                                                    children: [
-                                                      const Icon(
-                                                        Icons.timer_sharp,
-                                                        color: Colors.white,
-                                                        size: 30,
-                                                      ),
-                                                      const SizedBox(width: 8),
-                                                      Text(
-                                                        'Horário ${snapshot.data!.docs[index]['time']}',
-                                                        style: GoogleFonts
-                                                            .montserrat(
-                                                          fontSize: 18,
-                                                          color: Colors.white,
-                                                          fontWeight:
-                                                              FontWeight.normal,
-                                                        ),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                ],
+                                                    ),
+                                                    // dateRangePickerController
+                                                    //     .selectedDate.!,
+                                                    idEstablishment: userModel
+                                                        .establishmentId!,
+                                                  );
+                                                },
+                                          child: Container(
+                                            decoration: BoxDecoration(
+                                              color: isAvailable == false
+                                                  ? color.primary
+                                                  : const Color.fromARGB(
+                                                      255, 154, 238, 255),
+                                              borderRadius:
+                                                  BorderRadius.circular(800),
+                                            ),
+                                            alignment: Alignment.center,
+                                            child: Text(
+                                              hours,
+                                              style: TextStyle(
+                                                color: isAvailable == false
+                                                    ? Colors.white
+                                                    : color.primary,
                                               ),
                                             ),
                                           ),
                                         );
                                       },
                                     ),
-                                    const SizedBox(height: 25),
-                                  ],
-                                );
-                        } else {
-                          return const Padding(
-                            padding: EdgeInsets.all(20),
+                            ],
+                          ),
+                        )
+                      ],
+                    );
+                  } else {
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // ADS - Banner
+                        if (banner != null)
+                          SizedBox(
+                            width: 468,
+                            height: 60,
                             child: Center(
-                              child: CircularProgressIndicator(
-                                color: Colors.white,
-                              ),
-                            ),
-                          );
-                        }
-                      },
-                    ),
-                  ],
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(15),
-                child: listTimes.isEmpty
-                    ? const Center(
-                        child: CircularProgressIndicator(),
-                      )
-                    : Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // ElevatedButton(
-                          //   onPressed: () {
-                          //     // toCreate();
-                          //     print('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'.length);
-                          //   },
-                          //   child: const Text('data'),
-                          // ),
-
-                          const SizedBox(height: 30),
-
-                          Text(
-                            'Horários disponíveis',
-                            style: GoogleFonts.montserrat(
-                              fontSize: 30,
-                              fontWeight: FontWeight.w700,
+                              child: banner == null
+                                  ? Container()
+                                  : AdWidget(ad: banner!),
                             ),
                           ),
 
-                          // Text(
-                          //   'Os horários são redefinidos \ndiariamente às 22h.',
-                          //   style: GoogleFonts.montserrat(
-                          //     fontSize: 17,
-                          //     fontWeight: FontWeight.w400,
-                          //     color: Colors.grey,
-                          //   ),
-                          // ),
-                          const SizedBox(height: 15),
-
-                          ListView.builder(
-                            itemCount: listTimes.length,
-                            shrinkWrap: true,
-                            physics: const NeverScrollableScrollPhysics(),
-                            itemBuilder: (context, index) {
-                              SchedulesModel schedulesModel =
-                                  SchedulesModel.fromJson(
-                                listTimes[index]['doc'].data(),
-                              );
-
-                              bool isAvailable =
-                                  listTimes[index]['isAvailable'];
-
-                              // String dates = schedulesAuto[index]['date']
-
-                              var scheduling =
-                                  listTimes[index]['docScheduling'];
-
-                              final idTime = listTimes[index]['doc'].id;
-
-                              return InkWell(
-                                onTap: isAvailable == false
-                                    ? null
-                                    : () {
-                                        selectTime(
-                                            schedulesModel.time!, idTime);
-                                      },
-                                child: Card(
-                                  color: isAvailable == false
-                                      ? color.primary
-                                      : null,
-                                  margin:
-                                      const EdgeInsets.symmetric(vertical: 8),
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(15),
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        // ElevatedButton(
-                                        //   onPressed: () {
-                                        //     // print(schedulesAuto.contains('2023-05-28'));
-
-                                        //     // schedulesModel.schedules!.forEach((element) {
-                                        //     //   print(element['date']);
-                                        //     // });
-                                        //   },
-                                        //   child: Text('data'),
-                                        // ),
-                                        Text(
-                                          '${schedulesModel.time!}H',
-                                          style: GoogleFonts.montserrat(
-                                            fontSize: 25,
-                                            fontWeight: FontWeight.bold,
-                                            color: isAvailable == false
-                                                ? Colors.white
-                                                : null,
-                                          ),
-                                        ),
-                                        Text(
-                                          isAvailable == false
-                                              ? 'Indisponível'
-                                              : 'Disponível',
-                                          style: GoogleFonts.montserrat(
-                                            fontSize: 17,
-                                            color: isAvailable == false
-                                                ? color.error
-                                                : null,
-                                          ),
-                                        ),
-
-                                        if (isAvailable == false)
-                                          Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              const Divider(
-                                                  color: Colors.white),
-                                              StreamBuilder(
-                                                stream: FirebaseFirestore
-                                                    .instance
-                                                    .collection('users')
-                                                    .doc(scheduling['idUser'])
-                                                    .snapshots(),
-                                                builder: (context, snapshot) {
-                                                  if (snapshot.hasData) {
-                                                    UserModel userModel =
-                                                        UserModel.fromJson(
-                                                            snapshot.data!
-                                                                .data()!);
-
-                                                    return Column(
-                                                      crossAxisAlignment:
-                                                          CrossAxisAlignment
-                                                              .start,
-                                                      mainAxisAlignment:
-                                                          MainAxisAlignment
-                                                              .start,
-                                                      children: [
-                                                        Row(
-                                                          children: [
-                                                            CircleAvatar(
-                                                              backgroundImage:
-                                                                  NetworkImage(
-                                                                userModel
-                                                                    .imageProfile,
-                                                              ),
-                                                              radius: 30,
-                                                            ),
-                                                            const SizedBox(
-                                                                width: 8),
-                                                            Text(
-                                                              userModel.name
-                                                                          .length >
-                                                                      18
-                                                                  ? userModel
-                                                                      .name
-                                                                      .replaceRange(
-                                                                      18,
-                                                                      null,
-                                                                      '.',
-                                                                    )
-                                                                  : userModel
-                                                                      .name,
-                                                              style: GoogleFonts
-                                                                  .montserrat(
-                                                                fontSize: 20,
-                                                                color: Colors
-                                                                    .white,
-                                                                fontWeight:
-                                                                    FontWeight
-                                                                        .bold,
-                                                              ),
-                                                            )
-                                                          ],
-                                                        ),
-                                                      ],
-                                                    );
-                                                  } else {
-                                                    return Container();
-                                                  }
-                                                },
-                                              ),
-                                            ],
-                                          ),
-                                      ],
-                                    ),
-                                  ),
+                        // Selecionador de data
+                        Container(
+                          decoration: BoxDecoration(
+                            color: color.primary,
+                            image: const DecorationImage(
+                              image: AssetImage('assets/images/barber.jpeg'),
+                              fit: BoxFit.cover,
+                              opacity: 0.2,
+                            ),
+                            borderRadius: const BorderRadius.only(
+                              bottomLeft: Radius.circular(50),
+                            ),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // select Date
+                              Padding(
+                                padding: const EdgeInsets.all(15),
+                                child: Container(
+                                  child: sfDate(
+                                      idEstablishment: userId, isClient: false),
                                 ),
-                              );
-                            },
+                              ),
+
+                              const Padding(
+                                padding: EdgeInsets.symmetric(horizontal: 20),
+                                child: Row(
+                                  children: [
+                                    CircleAvatar(
+                                      backgroundColor: Colors.white,
+                                      radius: 8,
+                                    ),
+                                    SizedBox(width: 8),
+                                    Text(
+                                      'Disponível',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                    SizedBox(width: 20),
+                                    CircleAvatar(
+                                      backgroundColor: Colors.red,
+                                      radius: 8,
+                                    ),
+                                    SizedBox(width: 8),
+                                    Text(
+                                      'Indisponíveis',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+
+                              const SizedBox(height: 30),
+                            ],
                           ),
-                        ],
-                      ),
-              ),
-            ],
+                        ),
+
+                        // Get Hours available
+                        Padding(
+                          padding: const EdgeInsets.all(20),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const SizedBox(height: 20),
+                              Text(
+                                'Selecione o horário para seu agendamento',
+                                style: GoogleFonts.montserrat(
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.bold,
+                                  color: color.primary,
+                                ),
+                              ),
+                              const SizedBox(height: 25),
+                              listSchedules.isEmpty == true
+                                  ? SizedBox(
+                                      width: size.width,
+                                      child: Center(
+                                          child: Column(
+                                        children: [
+                                          const SizedBox(height: 25),
+                                          Icon(
+                                            Icons.timer_off_outlined,
+                                            color: Colors.grey.shade200,
+                                            size: 150,
+                                          ),
+                                          Text(
+                                            'Horários indisponíveis',
+                                            style: TextStyle(
+                                              color: Colors.grey.shade400,
+                                            ),
+                                          )
+                                        ],
+                                      )),
+                                    )
+                                  : GridView.builder(
+                                      gridDelegate:
+                                          const SliverGridDelegateWithMaxCrossAxisExtent(
+                                        maxCrossAxisExtent: 110,
+                                        mainAxisExtent: 100,
+                                        crossAxisSpacing: 15,
+                                        mainAxisSpacing: 15,
+                                      ),
+                                      physics:
+                                          const NeverScrollableScrollPhysics(),
+                                      shrinkWrap: true,
+                                      itemCount: listSchedules.length,
+                                      itemBuilder: (context, index) {
+                                        String hours =
+                                            listSchedules[index]['hour'];
+
+                                        bool isAvailable =
+                                            listSchedules[index]['isAvailable'];
+
+                                        return Container(
+                                          decoration: BoxDecoration(
+                                            color: isAvailable == false
+                                                ? color.primary
+                                                : const Color.fromARGB(
+                                                    255, 154, 238, 255),
+                                            borderRadius:
+                                                BorderRadius.circular(10),
+                                          ),
+                                          alignment: Alignment.center,
+                                          child: Padding(
+                                            padding: const EdgeInsets.all(8.0),
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.center,
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.center,
+                                              children: [
+                                                Text(
+                                                  '${hours}H',
+                                                  style: TextStyle(
+                                                      color:
+                                                          isAvailable == false
+                                                              ? Colors.white
+                                                              : color.primary,
+                                                      fontWeight:
+                                                          FontWeight.w800),
+                                                ),
+                                                if (listSchedules[index]
+                                                        ['isAvailable'] ==
+                                                    false)
+                                                  FutureBuilder(
+                                                    future: FirebaseFirestore
+                                                        .instance
+                                                        .collection('users')
+                                                        .doc(
+                                                            listSchedules[index]
+                                                                ['userId'])
+                                                        .get(),
+                                                    builder:
+                                                        (context, snapshot) {
+                                                      if (snapshot.hasData) {
+                                                        UserModel userModel =
+                                                            UserModel.fromJson(
+                                                                snapshot.data!
+                                                                    .data()!);
+
+                                                        return InkWell(
+                                                          onTap: () {
+                                                            dataUserSchedule(
+                                                              userModel:
+                                                                  userModel,
+                                                              hour: hours,
+                                                              docId: listSchedules[
+                                                                      index][
+                                                                  'idSchedules'],
+                                                            );
+                                                          },
+                                                          child: Column(
+                                                            children: [
+                                                              const SizedBox(
+                                                                height: 5,
+                                                              ),
+                                                              CircleAvatar(
+                                                                backgroundColor:
+                                                                    const Color
+                                                                        .fromARGB(
+                                                                        255,
+                                                                        32,
+                                                                        158,
+                                                                        184),
+                                                                radius: 18,
+                                                                child: Text(
+                                                                  userModel.name
+                                                                      .replaceRange(
+                                                                          1,
+                                                                          null,
+                                                                          ''),
+                                                                  style:
+                                                                      const TextStyle(
+                                                                    color: Colors
+                                                                        .white,
+                                                                    fontSize:
+                                                                        25,
+                                                                    fontWeight:
+                                                                        FontWeight
+                                                                            .bold,
+                                                                  ),
+                                                                ),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                        );
+                                                      } else {
+                                                        return Container();
+                                                      }
+                                                    },
+                                                  )
+                                              ],
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                    ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    );
+                  }
+                } else {
+                  return SizedBox(
+                    height: size.height,
+                    width: size.width,
+                    child: const Center(
+                      child: CircularProgressIndicator(),
+                    ),
+                  );
+                }
+              },
+            ),
           ),
         ),
       ),

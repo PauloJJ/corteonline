@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 
 import 'package:google_fonts/google_fonts.dart';
 import 'package:nico/components/auth_or_app_component.dart';
-import 'package:nico/screens/auth_screens/register_screen.dart';
+import 'package:nico/components/register_cliente_or_barber_component.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -25,7 +25,7 @@ class _LoginScreenState extends State<LoginScreen> {
               email: emailController.text, password: passowrdController.text)
           .then((value) => Navigator.of(context).pushAndRemoveUntil(
               MaterialPageRoute(
-                builder: (context) => const AuthOrAppComponent(),
+                builder: (context) => AuthOrAppComponent(index: 0),
               ),
               (route) => false));
     } on FirebaseAuthException catch (erro) {
@@ -67,141 +67,146 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
     final color = Theme.of(context).colorScheme;
-    final text = Theme.of(context).textTheme;
 
-    return Scaffold(
-      backgroundColor: color.primary,
-      body: Container(
-        height: size.height,
-        width: size.width,
-        decoration: const BoxDecoration(
-          image: DecorationImage(
-            image: AssetImage('assets/images/barber.jpeg'),
-            fit: BoxFit.cover,
-            opacity: 0.25,
+    return WillPopScope(
+      onWillPop: () async {
+        return false;
+      },
+      child: Scaffold(
+        backgroundColor: color.primary,
+        body: Container(
+          height: size.height,
+          width: size.width,
+          decoration: const BoxDecoration(
+            image: DecorationImage(
+              image: AssetImage('assets/images/barber.jpeg'),
+              fit: BoxFit.cover,
+              opacity: 0.25,
+            ),
           ),
-        ),
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              SizedBox(height: AppBar().preferredSize.height * 2),
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                SizedBox(height: AppBar().preferredSize.height * 2),
 
-              Image.asset(
-                'assets/images/nico-white.png',
-                scale: 10,
-              ),
+                Image.asset(
+                  'assets/images/branco.png',
+                  scale: 2.70,
+                ),
 
-              const SizedBox(height: 30),
+                const SizedBox(height: 50),
 
-              // Register
-              Padding(
-                padding: const EdgeInsets.all(15),
-                child: Container(
-                  alignment: Alignment.center,
-                  width: size.width,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(20),
-                    color: Colors.white,
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(15),
-                    child: Column(
-                      children: [
-                        const SizedBox(height: 10),
-                        Text(
-                          'Login',
-                          style: GoogleFonts.montserrat(
-                            fontSize: 30,
-                          ),
-                        ),
-                        const SizedBox(height: 15),
-                        TextFormField(
-                          controller: emailController,
-                          keyboardType: TextInputType.emailAddress,
-                          decoration: InputDecoration(
-                            contentPadding: const EdgeInsets.all(20),
-                            hintText: 'E-mail',
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(800),
+                // Register
+                Padding(
+                  padding: const EdgeInsets.all(15),
+                  child: Container(
+                    alignment: Alignment.center,
+                    width: size.width,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(20),
+                      color: Colors.white,
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(15),
+                      child: Column(
+                        children: [
+                          const SizedBox(height: 10),
+                          Text(
+                            'Login',
+                            style: GoogleFonts.montserrat(
+                              fontSize: 30,
                             ),
-                            suffixIcon: const Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 15),
-                              child: CircleAvatar(
-                                child: Icon(
-                                  Icons.email,
-                                ),
+                          ),
+                          const SizedBox(height: 15),
+                          TextFormField(
+                            controller: emailController,
+                            keyboardType: TextInputType.emailAddress,
+                            decoration: InputDecoration(
+                              contentPadding: const EdgeInsets.all(20),
+                              hintText: 'E-mail',
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(800),
                               ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 15),
-                        TextFormField(
-                          controller: passowrdController,
-                          obscureText: true,
-                          decoration: InputDecoration(
-                            contentPadding: const EdgeInsets.all(20),
-                            hintText: 'Senha',
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(800),
-                            ),
-                            suffixIcon: const Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 15),
-                              child: CircleAvatar(
-                                child: Icon(
-                                  Icons.security_rounded,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 35),
-                        _isLoading == true
-                            ? const Center(child: CircularProgressIndicator())
-                            : ElevatedButton(
-                                onPressed: () {
-                                  submitForm();
-                                },
-                                style: ElevatedButton.styleFrom(
-                                    backgroundColor: color.primary),
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 25,
-                                    vertical: 8,
+                              suffixIcon: const Padding(
+                                padding: EdgeInsets.symmetric(horizontal: 15),
+                                child: CircleAvatar(
+                                  child: Icon(
+                                    Icons.email,
                                   ),
-                                  child: Text(
-                                    'Login',
-                                    style: GoogleFonts.montserrat(
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.w400,
-                                      color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 15),
+                          TextFormField(
+                            controller: passowrdController,
+                            obscureText: true,
+                            decoration: InputDecoration(
+                              contentPadding: const EdgeInsets.all(20),
+                              hintText: 'Senha',
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(800),
+                              ),
+                              suffixIcon: const Padding(
+                                padding: EdgeInsets.symmetric(horizontal: 15),
+                                child: CircleAvatar(
+                                  child: Icon(
+                                    Icons.security_rounded,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 35),
+                          _isLoading == true
+                              ? const Center(child: CircularProgressIndicator())
+                              : ElevatedButton(
+                                  onPressed: () {
+                                    submitForm();
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                      backgroundColor: color.primary),
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 25,
+                                      vertical: 8,
+                                    ),
+                                    child: Text(
+                                      'Login',
+                                      style: GoogleFonts.montserrat(
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.w400,
+                                        color: Colors.white,
+                                      ),
                                     ),
                                   ),
                                 ),
-                              ),
-                        const SizedBox(height: 20),
-                        TextButton(
-                          onPressed: () {
-                            Navigator.of(context).pushAndRemoveUntil(
+                          const SizedBox(height: 20),
+                          TextButton(
+                            onPressed: () {
+                              Navigator.of(context).push(
                                 MaterialPageRoute(
-                                  builder: (context) => RegisterScreen(),
+                                  builder: (context) =>
+                                      const RegisterClientOrBarberComponent(),
                                 ),
-                                (route) => false);
-                          },
-                          child: Text(
-                            'Registrar-se',
-                            style: GoogleFonts.montserrat(
-                                fontSize: 20, fontWeight: FontWeight.w500),
+                              );
+                            },
+                            child: Text(
+                              'Registrar-se',
+                              style: GoogleFonts.montserrat(
+                                  fontSize: 20, fontWeight: FontWeight.w500),
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 10),
-                      ],
+                          const SizedBox(height: 10),
+                        ],
+                      ),
                     ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
