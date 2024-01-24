@@ -1,3 +1,5 @@
+// ignore_for_file: deprecated_member_use
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
@@ -16,20 +18,34 @@ class _LoginScreenState extends State<LoginScreen> {
   final emailController = TextEditingController();
   final passowrdController = TextEditingController();
 
-  bool _isLoading = false;
+  bool isLoading = false;
 
   submitForm() async {
+    setState(() {
+      isLoading = true;
+    });
+
     try {
       await FirebaseAuth.instance
           .signInWithEmailAndPassword(
               email: emailController.text, password: passowrdController.text)
-          .then((value) => Navigator.of(context).pushAndRemoveUntil(
-              MaterialPageRoute(
-                builder: (context) => AuthOrAppComponent(index: 0),
-              ),
-              (route) => false));
+          .then((value) {
+        setState(() {
+          isLoading = false;
+        });
+
+        Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(
+              builder: (context) => AuthOrAppComponent(index: 0),
+            ),
+            (route) => false);
+      });
     } on FirebaseAuthException catch (erro) {
-      print(erro);
+      setState(() {
+        isLoading = false;
+      });
+
+      // ignore: use_build_context_synchronously
       return showDialog(
         context: context,
         builder: (context) {
@@ -89,14 +105,10 @@ class _LoginScreenState extends State<LoginScreen> {
               crossAxisAlignment: CrossAxisAlignment.center,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                SizedBox(height: AppBar().preferredSize.height * 2),
-
                 Image.asset(
                   'assets/images/branco.png',
-                  scale: 2.70,
+                  scale: 30,
                 ),
-
-                const SizedBox(height: 50),
 
                 // Register
                 Padding(
@@ -160,7 +172,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                           ),
                           const SizedBox(height: 35),
-                          _isLoading == true
+                          isLoading == true
                               ? const Center(child: CircularProgressIndicator())
                               : ElevatedButton(
                                   onPressed: () {

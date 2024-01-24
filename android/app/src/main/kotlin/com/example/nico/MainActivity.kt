@@ -1,4 +1,4 @@
-package br.com.cortecerto
+package br.com.corteonline
 
 import io.flutter.embedding.android.FlutterActivity
 

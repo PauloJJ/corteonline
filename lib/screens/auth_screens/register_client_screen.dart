@@ -236,14 +236,10 @@ class _RegisterClientState extends State<RegisterClient> {
             crossAxisAlignment: CrossAxisAlignment.center,
             mainAxisAlignment: MainAxisAlignment.start,
             children: [
-              SizedBox(height: AppBar().preferredSize.height),
-
-              // Image.asset(
-              //   'assets/images/nico-white.png',
-              //   scale: 10,
-              // ),
-
-              // const SizedBox(height: 20),
+              Image.asset(
+                'assets/images/branco.png',
+                scale: 35,
+              ),
 
               // Register
               Padding(

@@ -44,40 +44,38 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyCgdDKKm0zGF1eXiInkBEqfHWdUJrT-gOM',
-    appId: '1:173798567063:web:97c51f72f18fe392f10dd2',
-    messagingSenderId: '173798567063',
-    projectId: 'corte-certo-84692',
-    authDomain: 'corte-certo-84692.firebaseapp.com',
-    storageBucket: 'corte-certo-84692.appspot.com',
-    measurementId: 'G-2LRDMBPDDR',
+    apiKey: 'AIzaSyAfmU8XEqXpa_NL3NfC-3vORSMceHUUi3c',
+    appId: '1:799434034952:web:dd0a7b9a0ea63bd812e6bd',
+    messagingSenderId: '799434034952',
+    projectId: 'corte-online',
+    authDomain: 'corte-online.firebaseapp.com',
+    storageBucket: 'corte-online.appspot.com',
+    measurementId: 'G-4GVEM5ZBS6',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyCe35X9XoHCDvPmz0etxY6AIa-8FReKmps',
-    appId: '1:173798567063:android:e4ba509ae96690e1f10dd2',
-    messagingSenderId: '173798567063',
-    projectId: 'corte-certo-84692',
-    storageBucket: 'corte-certo-84692.appspot.com',
+    apiKey: 'AIzaSyAof1g2jP1Ax8276iLk2KG3UnHJVl30tBk',
+    appId: '1:799434034952:android:7993a063e762391e12e6bd',
+    messagingSenderId: '799434034952',
+    projectId: 'corte-online',
+    storageBucket: 'corte-online.appspot.com',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyDeY3PyDoEYeDIf7xSAA4uyccPYPdh7quk',
-    appId: '1:173798567063:ios:c8e9032d80d00965f10dd2',
-    messagingSenderId: '173798567063',
-    projectId: 'corte-certo-84692',
-    storageBucket: 'corte-certo-84692.appspot.com',
-    iosClientId: '173798567063-dokkieottoi1m3nd9chg03neq1issb0h.apps.googleusercontent.com',
-    iosBundleId: 'br.com.cortecerto',
+    apiKey: 'AIzaSyDaPMZVdVNwsQerwqvbNGiBAYO68KO7E7E',
+    appId: '1:799434034952:ios:f32477a4fb709dd612e6bd',
+    messagingSenderId: '799434034952',
+    projectId: 'corte-online',
+    storageBucket: 'corte-online.appspot.com',
+    iosBundleId: 'br.com.corteonline',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
-    apiKey: 'AIzaSyDeY3PyDoEYeDIf7xSAA4uyccPYPdh7quk',
-    appId: '1:173798567063:ios:c8e9032d80d00965f10dd2',
-    messagingSenderId: '173798567063',
-    projectId: 'corte-certo-84692',
-    storageBucket: 'corte-certo-84692.appspot.com',
-    iosClientId: '173798567063-dokkieottoi1m3nd9chg03neq1issb0h.apps.googleusercontent.com',
-    iosBundleId: 'br.com.cortecerto',
+    apiKey: 'AIzaSyDaPMZVdVNwsQerwqvbNGiBAYO68KO7E7E',
+    appId: '1:799434034952:ios:f32477a4fb709dd612e6bd',
+    messagingSenderId: '799434034952',
+    projectId: 'corte-online',
+    storageBucket: 'corte-online.appspot.com',
+    iosBundleId: 'br.com.corteonline',
   );
 }

@@ -122,14 +122,15 @@ class _TutorialClientComponentState extends State<TutorialClientComponent> {
                       .collection('users')
                       .doc(userId)
                       .update({'establishmentId': docId}).then(
-                          (value) => Navigator.of(context)
-                            ..pop()
-                            ..pushAndRemoveUntil(
-                                MaterialPageRoute(
-                                  builder: (context) =>
-                                      AuthOrAppComponent(index: 0),
-                                ),
-                                (route) => false));
+                    (value) => Navigator.of(context)
+                      ..pop()
+                      ..pushAndRemoveUntil(
+                        MaterialPageRoute(
+                          builder: (context) => AuthOrAppComponent(index: 0),
+                        ),
+                        (route) => false,
+                      ),
+                  );
                 },
                 child: Padding(
                   padding: const EdgeInsets.all(10),

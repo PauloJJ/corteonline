@@ -1,6 +1,5 @@
-// ignore_for_file: use_build_context_synchronously
-
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -228,6 +227,8 @@ class _HomeScreensState extends State<HomeScreens> {
               setState(() {
                 weekDay = dateRangePickerController.selectedDate!.weekday;
               });
+
+              FirebaseAnalytics.instance.logEvent(name: 'set_date_schedules');
             },
             controller: dateRangePickerController,
           );
@@ -309,6 +310,9 @@ class _HomeScreensState extends State<HomeScreens> {
                   'userId': userId,
                   'idEstablishment': idEstablishment,
                 }).then((value) async {
+                  await FirebaseAnalytics.instance
+                      .logEvent(name: 'made_an_appointment');
+
                   await getSchedules(
                     date: DateFormat('dd/MM/yyyy')
                         .format(dateRangePickerController.selectedDate!),
@@ -565,13 +569,11 @@ class _HomeScreensState extends State<HomeScreens> {
                         // ADS - Banner
                         if (banner != null)
                           Container(
-                            width: 468,
-                            height: 60,
-                            child: Center(
-                              child: banner == null
-                                  ? Container()
-                                  : AdWidget(ad: banner!),
-                            ),
+                            width: banner!.size.width.toDouble(),
+                            height: banner!.size.height.toDouble(),
+                            child: banner == null
+                                ? Container()
+                                : AdWidget(ad: banner!),
                           ),
 
                         // Selecionador de data
@@ -852,7 +854,7 @@ class _HomeScreensState extends State<HomeScreens> {
                             children: [
                               const SizedBox(height: 20),
                               Text(
-                                'Selecione o horário para seu agendamento',
+                                'Sua Agenda de Trabalho',
                                 style: GoogleFonts.montserrat(
                                   fontSize: 22,
                                   fontWeight: FontWeight.bold,

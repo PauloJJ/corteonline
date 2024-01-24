@@ -1,12 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:nico/model/barber_model.dart';
 import 'package:nico/model/user_model.dart';
-
 import 'package:nico/screens/auth_screens/login_screen.dart';
 import 'package:nico/screens/bottom_navigator.dart';
-
 import 'package:nico/screens/loading_screen.dart';
 import 'package:nico/screens/tutorial_screen.dart';
 
@@ -20,6 +19,15 @@ class AuthOrAppComponent extends StatefulWidget {
 }
 
 class _AuthOrAppComponentState extends State<AuthOrAppComponent> {
+  @override
+  void initState() {
+    super.initState();
+
+    FirebaseAnalytics.instance.logEvent(
+      name: 'init_app',
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return StreamBuilder(

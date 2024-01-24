@@ -1,36 +1,45 @@
 {
   "project_info": {
-    "project_number": "173798567063",
-    "project_id": "corte-certo-84692",
-    "storage_bucket": "corte-certo-84692.appspot.com"
+    "project_number": "799434034952",
+    "project_id": "corte-online",
+    "storage_bucket": "corte-online.appspot.com"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:173798567063:android:e4ba509ae96690e1f10dd2",
+        "mobilesdk_app_id": "1:799434034952:android:ef375cc77dfd1a4d12e6bd",
         "android_client_info": {
           "package_name": "br.com.cortecerto"
         }
       },
-      "oauth_client": [
-        {
-          "client_id": "173798567063-hfnnsl88lcf8pc3eqon182fkdnvijmek.apps.googleusercontent.com",
-          "client_type": 3
-        }
-      ],
+      "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyCe35X9XoHCDvPmz0etxY6AIa-8FReKmps"
+          "current_key": "AIzaSyAof1g2jP1Ax8276iLk2KG3UnHJVl30tBk"
         }
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": [
-            {
-              "client_id": "173798567063-hfnnsl88lcf8pc3eqon182fkdnvijmek.apps.googleusercontent.com",
-              "client_type": 3
-            }
-          ]
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:799434034952:android:7993a063e762391e12e6bd",
+        "android_client_info": {
+          "package_name": "br.com.corteonline"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAof1g2jP1Ax8276iLk2KG3UnHJVl30tBk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
         }
       }
     }
