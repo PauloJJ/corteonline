@@ -59,7 +59,7 @@ class _DeleteAccountState extends State<DeleteAccount> {
                   .replaceAll('The email address is badly formatted.',
                       'O endereço de e-mail está formatado incorretamente.')
                   .replaceAll('Given String is empty or null',
-                      'O campo de E-mail e Senha não pode estar vazio')
+                      'O campo de E-mail e Senha não pode estar vazio.')
                   .replaceAll(
                       'There is no user record corresponding to this identifier. The user may have been deleted.',
                       'Não há registro de usuário correspondente a este identificador.'),
